@@ -197,7 +197,7 @@ class Searcher
 		foreach (Config::facets() as $facet) {
 			$args['aggs'][$facet] = array(
 				'aggs' => array(
-					"facet" => array(
+                    'facet' => array(
 						'terms' => array(
 							'field' => $facet,
 							'size' => Config::apply_filters('searcher_query_facet_size', 100)  // see https://github.com/elasticsearch/elasticsearch/issues/1832
@@ -232,7 +232,7 @@ class Searcher
 
 				if (count($ranges) > 0) {
 					$args['aggs'][$facet]['aggs'] = array(
-						"range" => array(
+                        'range' => array(
 							'range' => array(
 								'field' => $facet,
 								'ranges' => array()
@@ -282,7 +282,7 @@ class Searcher
 				$notanalyzed = Config::option('not_analyzed');
 
 				if ($score > 0) {
-					if (strpos($search, "~") > -1 || isset($notanalyzed[$field])) {
+					if (strpos($search, '~') > -1 || isset($notanalyzed[$field])) {
 						// TODO: fuzzy doesn't work with english analyzer
 						$scored[] = "$field^$score";
 					} else {
@@ -314,7 +314,7 @@ class Searcher
 
 					self::_filterBySelectedFacets($field, $facets, 'range', $musts, $filters, $transformed);
 				}
-			} else if ($type == 'custom') {
+			} else if ($type === 'custom') {
 				self::_filterBySelectedFacets($field, $facets, 'term', $musts, $filters);
 			}
 		}

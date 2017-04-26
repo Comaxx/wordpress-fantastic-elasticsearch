@@ -1,10 +1,8 @@
 <?php
-
 namespace Elastica\Cluster;
 
 use Elastica\Client;
 use Elastica\Cluster\Health\Index;
-use Elastica\Request;
 
 /**
  * Elastic cluster health.
@@ -18,12 +16,12 @@ class Health
     /**
      * @var \Elastica\Client Client object.
      */
-    protected $_client = null;
+    protected $_client;
 
     /**
      * @var array The cluster health data.
      */
-    protected $_data = null;
+    protected $_data;
 
     /**
      * @param \Elastica\Client $client The Elastica client.
@@ -41,8 +39,10 @@ class Health
      */
     protected function _retrieveHealthData()
     {
-        $path = '_cluster/health?level=shards';
-        $response = $this->_client->request($path, Request::GET);
+        $endpoint = new \Elasticsearch\Endpoints\Cluster\Health();
+        $endpoint->setParams(['level' => 'shards']);
+
+        $response = $this->_client->requestEndpoint($endpoint);
 
         return $response->getData();
     }
@@ -176,9 +176,9 @@ class Health
      */
     public function getIndices()
     {
-        $indices = array();
+        $indices = [];
         foreach ($this->_data['indices'] as $indexName => $index) {
-            $indices[] = new Index($indexName, $index);
+            $indices[$indexName] = new Index($indexName, $index);
         }
 
         return $indices;

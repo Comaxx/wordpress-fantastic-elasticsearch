@@ -1,5 +1,4 @@
 <?php
-
 namespace Elastica\Index;
 
 use Elastica\Exception\NotFoundException;
@@ -21,28 +20,28 @@ use Elastica\Request;
  */
 class Settings
 {
+    const DEFAULT_REFRESH_INTERVAL = '1s';
+
     /**
      * Response.
      *
      * @var \Elastica\Response Response object
      */
-    protected $_response = null;
+    protected $_response;
 
     /**
      * Stats info.
      *
      * @var array Stats info
      */
-    protected $_data = array();
+    protected $_data = [];
 
     /**
      * Index.
      *
      * @var \Elastica\Index Index object
      */
-    protected $_index = null;
-
-    const DEFAULT_REFRESH_INTERVAL = '1s';
+    protected $_index;
 
     /**
      * Construct.
@@ -104,6 +103,25 @@ class Settings
     }
 
     /**
+     * Returns a setting interpreted as a bool.
+     *
+     * One can use a real bool, int(0), int(1) to set bool settings.
+     * But Elasticsearch stores and returns all settings as strings and does
+     * not normalize bool values. This method ensures a bool is returned for
+     * whichever string representation is used like 'true', '1', 'on', 'yes'.
+     *
+     * @param string $setting Setting name to return
+     *
+     * @return bool
+     */
+    public function getBool($setting)
+    {
+        $data = $this->get($setting);
+
+        return 'true' === $data || '1' === $data || 'on' === $data || 'yes' === $data;
+    }
+
+    /**
      * Sets the number of replicas.
      *
      * @param int $replicas Number of replicas
@@ -112,11 +130,7 @@ class Settings
      */
     public function setNumberOfReplicas($replicas)
     {
-        $replicas = (int) $replicas;
-
-        $data = array('number_of_replicas' => $replicas);
-
-        return $this->set($data);
+        return $this->set(['number_of_replicas' => (int) $replicas]);
     }
 
     /**
@@ -128,17 +142,15 @@ class Settings
      */
     public function setReadOnly($readOnly = true)
     {
-        return $this->set(array('blocks.write' => $readOnly));
+        return $this->set(['blocks.read_only' => $readOnly]);
     }
 
     /**
-     * getReadOnly.
-     *
      * @return bool
      */
     public function getReadOnly()
     {
-        return $this->get('blocks.write') === 'true'; // ES returns a string for this setting
+        return $this->getBool('blocks.read_only');
     }
 
     /**
@@ -146,7 +158,7 @@ class Settings
      */
     public function getBlocksRead()
     {
-        return (bool) $this->get('blocks.read');
+        return $this->getBool('blocks.read');
     }
 
     /**
@@ -156,9 +168,7 @@ class Settings
      */
     public function setBlocksRead($state = true)
     {
-        $state = $state ? 1 : 0;
-
-        return $this->set(array('blocks.read' => $state));
+        return $this->set(['blocks.read' => $state]);
     }
 
     /**
@@ -166,7 +176,7 @@ class Settings
      */
     public function getBlocksWrite()
     {
-        return (bool) $this->get('blocks.write');
+        return $this->getBool('blocks.write');
     }
 
     /**
@@ -176,9 +186,7 @@ class Settings
      */
     public function setBlocksWrite($state = true)
     {
-        $state = $state ? 1 : 0;
-
-        return $this->set(array('blocks.write' => $state));
+        return $this->set(['blocks.write' => $state]);
     }
 
     /**
@@ -186,30 +194,29 @@ class Settings
      */
     public function getBlocksMetadata()
     {
-        // TODO will have to be replace by block.metadata.write once https://github.com/elasticsearch/elasticsearch/pull/9203 has been fixed
-        // the try/catch will have to be remove too
+        // When blocks.metadata is enabled, reading the settings is not possible anymore.
+        // So when a cluster_block_exception happened it must be enabled.
         try {
-            return (bool) $this->get('blocks.write');
+            return $this->getBool('blocks.metadata');
         } catch (ResponseException $e) {
-            if (strpos($e->getMessage(), 'ClusterBlockException') !== false) {
-                // hacky way to test if the metadata is blocked since bug 9203 is not fixed
+            if ($e->getResponse()->getFullError()['type'] === 'cluster_block_exception') {
                 return true;
-            } else {
-                throw $e;
             }
+
+            throw $e;
         }
     }
 
     /**
+     * Set to true to disable index metadata reads and writes.
+     *
      * @param bool $state OPTIONAL (default = true)
      *
      * @return \Elastica\Response
      */
     public function setBlocksMetadata($state = true)
     {
-        $state = $state ? 1 : 0;
-
-        return $this->set(array('blocks.write' => $state));
+        return $this->set(['blocks.metadata' => $state]);
     }
 
     /**
@@ -224,7 +231,7 @@ class Settings
      */
     public function setRefreshInterval($interval)
     {
-        return $this->set(array('refresh_interval' => $interval));
+        return $this->set(['refresh_interval' => $interval]);
     }
 
     /**
@@ -246,34 +253,6 @@ class Settings
     }
 
     /**
-     * Return merge policy.
-     *
-     * @return string Merge policy type
-     */
-    public function getMergePolicyType()
-    {
-        return $this->get('merge.policy.type');
-    }
-
-    /**
-     * Sets merge policy.
-     *
-     * @param string $type Merge policy type
-     *
-     * @return \Elastica\Response Response object
-     *
-     * @link https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules-merge.html
-     */
-    public function setMergePolicyType($type)
-    {
-        $this->getIndex()->close();
-        $response = $this->set(array('merge.policy.type' => $type));
-        $this->getIndex()->open();
-
-        return $response;
-    }
-
-    /**
      * Sets the specific merge policies.
      *
      * To have this changes made the index has to be closed and reopened
@@ -288,7 +267,7 @@ class Settings
     public function setMergePolicy($key, $value)
     {
         $this->getIndex()->close();
-        $response = $this->set(array('merge.policy.'.$key => $value));
+        $response = $this->set(['merge.policy.'.$key => $value]);
         $this->getIndex()->open();
 
         return $response;
@@ -353,12 +332,12 @@ class Settings
      *
      * @return \Elastica\Response Response object
      */
-    public function request(array $data = array(), $method = Request::GET)
+    public function request(array $data = [], $method = Request::GET)
     {
         $path = '_settings';
 
         if (!empty($data)) {
-            $data = array('index' => $data);
+            $data = ['index' => $data];
         }
 
         return $this->getIndex()->request($path, $method, $data);
