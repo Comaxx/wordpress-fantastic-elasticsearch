@@ -119,6 +119,8 @@ class Indexer
 	 **/
 	static function addOrUpdate($post, $index = null)
 	{
+	    global $blog_id;
+
 		$index = ($index ?: self::_index(true));
 
 		$type = $index->getType($post->post_type);
@@ -333,7 +335,7 @@ class Indexer
 	 *
 	 * @param boolean $write Specifiy whether you are making read-only or write transactions (currently just adjusts timeout values)
 	 *
-	 * @return Elastica\Client
+	 * @return \Elastica\Client
 	 * @internal
 	 **/
 	static function _client($write = false)
@@ -359,12 +361,12 @@ class Indexer
 	 *
 	 * @param boolean $write Specifiy whether you are making read-only or write transactions (currently just adjusts timeout values)
 	 *
-	 * @return Elastica\Index
+	 * @return \Elastica\Index
 	 * @internal
 	 **/
-	static function _index($write = false)
+	public static function _index($write = false, $useAlias = false)
 	{
-		return self::_client($write)->getIndex(Config::option('server_index'));
+		return self::_client($write)->getIndex(($useAlias && Config::option('server_alias'))?Config::option('server_alias'):Config::option('server_index'));
 	}
 }
 

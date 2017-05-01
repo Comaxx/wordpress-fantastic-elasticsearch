@@ -45,12 +45,12 @@ class Searcher
 		$query = new \Elastica\Query($args);
 		$query->setFrom($pageIndex * $size);
 		$query->setSize($size);
-		$query->setFields(array('id'));
+		$query->setFieldDataFields(array('id'));
 
 		$query = Config::apply_filters('searcher_query', $query);
 
 		try {
-			$index = Indexer::_index(false);
+			$index = Indexer::_index(false, true);
 
 			$search = new \Elastica\Search($index->getClient());
 			$search->addIndex($index);
@@ -106,7 +106,7 @@ class Searcher
 		}
 
 		foreach ($response->getResults() as $result) {
-			$val['ids'][] = $result->getId();
+			$val['ids'][$result['_hit']['_source']['blog_id']][] = $result->getId();
 		}
 
 		return Config::apply_filters('searcher_results', $val, $response);
@@ -121,7 +121,6 @@ class Searcher
 
 		$search = str_ireplace(array(' and ', ' or '), array(' AND ', ' OR '), $search);
 
-		$fields = array();
 		$musts = array();
 		$filters = array();
 		$scored = array();
@@ -149,7 +148,7 @@ class Searcher
 		self::_searchField($fields, 'field', $exclude, $search, $facets, $musts, $filters, $scored, $numeric);
 		self::_searchField(Config::meta_fields(), 'meta', $exclude, $search, $facets, $musts, $filters, $scored, $numeric);
 
-		if (count($scored) > 0 && $search) {
+		if ($search && count($scored) > 0) {
 			$qs = array(
 				'fields' => $scored,
 				'query' => $search
@@ -157,13 +156,14 @@ class Searcher
 
 			$fuzzy = Config::option('fuzzy');
 
-			if ($fuzzy && strpos($search, "~") > -1) {
-				$qs['fuzzy_min_sim'] = $fuzzy;
+			if ($fuzzy && strpos($search, '~') !== false) {
+				$qs['fuzziness'] = $fuzzy;
 			}
 
 			$qs = Config::apply_filters('searcher_query_string', $qs);
 
-			$musts[] = array('query_string' => $qs);
+            $args['query']['query_string'] = $qs;
+			//$musts[] = array('match' => $search);
 		}
 
 		if (in_array('post_type', $fields)) {
@@ -173,99 +173,97 @@ class Searcher
 		self::_searchField(Config::customFacets(), 'custom', $exclude, $search, $facets, $musts, $filters, $scored, $numeric);
 
 		if (count($filters) > 0) {
-			$args['filter']['bool'] = self::_filtersToBoolean($filters);
+			//$args['query'] = self::_filtersToBoolean($filters);
 		}
 
 		if (count($musts) > 0) {
-			$args['query']['bool']['must'] = $musts;
+			// $args['query']['bool']['must'] = $musts;
 		}
 
-		$blogfilter = array('term' => array('blog_id' => $blog_id));
-
-		$args['filter']['bool']['must'][] = $blogfilter;
+		// $args['query']['filter']['term']['blog_id'] = $blog_id;
 
 		$args = Config::apply_filters('searcher_query_pre_facet_filter', $args);
 
-		if (in_array('post_type', $fields)) {
-			$args['aggs']['post_type']['terms'] = array(
-				'field' => 'post_type',
-				'size' => Config::apply_filters('searcher_query_facet_size', 100)  // see https://github.com/elasticsearch/elasticsearch/issues/1832
-			);
-		}
+//		if (in_array('post_type', $fields, true)) {
+//			$args['aggs']['post_type']['terms'] = array(
+//				'field' => 'post_type',
+//				'size' => Config::apply_filters('searcher_query_facet_size', 100)  // see https://github.com/elasticsearch/elasticsearch/issues/1832
+//			);
+//		}
+//
+//		// return facets
+//		foreach (Config::facets() as $facet) {
+//			$args['aggs'][$facet] = array(
+//				'aggs' => array(
+//                    'facet' => array(
+//						'terms' => array(
+//							'field' => $facet,
+//							'size' => Config::apply_filters('searcher_query_facet_size', 100)  // see https://github.com/elasticsearch/elasticsearch/issues/1832
+//						)
+//					)
+//				)
+//			);
+//
+//			if (count($filters) > 0) {
+//				$applicable = array();
+//
+//				foreach ($filters as $filter) {
+//					foreach ($filter as $type) {
+//						$terms = array_keys($type);
+//
+//						if (!in_array($facet, $terms)) {
+//							// do not filter on itself when using OR
+//							$applicable[] = $filter;
+//						}
+//					}
+//				}
+//
+//				if (count($applicable) > 0) {
+//					$args['aggs'][$facet]['filter']['bool'] = self::_filtersToBoolean($applicable);
+//				}
+//			}
+//		}
 
-		// return facets
-		foreach (Config::facets() as $facet) {
-			$args['aggs'][$facet] = array(
-				'aggs' => array(
-                    'facet' => array(
-						'terms' => array(
-							'field' => $facet,
-							'size' => Config::apply_filters('searcher_query_facet_size', 100)  // see https://github.com/elasticsearch/elasticsearch/issues/1832
-						)
-					)
-				)
-			);
+//		if (is_array($numeric)) {
+//			foreach (array_keys($numeric) as $facet) {
+//				$ranges = Config::ranges($facet);
+//
+//				if (count($ranges) > 0) {
+//					$args['aggs'][$facet]['aggs'] = array(
+//                        'range' => array(
+//							'range' => array(
+//								'field' => $facet,
+//								'ranges' => array()
+//							)
+//						)
+//					);
+//
+//					foreach ($ranges as $key => $range) {
+//						$params = array();
+//
+//						if (isset($range['to'])) {
+//							$params['to'] = $range['to'];
+//						}
+//
+//						if (isset($range['from'])) {
+//							$params['from'] = $range['from'];
+//						}
+//
+//						$args['aggs'][$facet]['aggs']['range']['range']['ranges'][] = $params;
+//					}
+//				}
+//			}
+//		}
 
-			if (count($filters) > 0) {
-				$applicable = array();
-
-				foreach ($filters as $filter) {
-					foreach ($filter as $type) {
-						$terms = array_keys($type);
-
-						if (!in_array($facet, $terms)) {
-							// do not filter on itself when using OR
-							$applicable[] = $filter;
-						}
-					}
-				}
-
-				if (count($applicable) > 0) {
-					$args['aggs'][$facet]['filter']['bool'] = self::_filtersToBoolean($applicable);
-				}
-			}
-		}
-
-		if (is_array($numeric)) {
-			foreach (array_keys($numeric) as $facet) {
-				$ranges = Config::ranges($facet);
-
-				if (count($ranges) > 0) {
-					$args['aggs'][$facet]['aggs'] = array(
-                        'range' => array(
-							'range' => array(
-								'field' => $facet,
-								'ranges' => array()
-							)
-						)
-					);
-
-					foreach ($ranges as $key => $range) {
-						$params = array();
-
-						if (isset($range['to'])) {
-							$params['to'] = $range['to'];
-						}
-
-						if (isset($range['from'])) {
-							$params['from'] = $range['from'];
-						}
-
-						$args['aggs'][$facet]['aggs']['range']['range']['ranges'][] = $params;
-					}
-				}
-			}
-		}
-
-		if (isset($args['aggs'])) {
-			foreach ($args['aggs'] as $facet => &$config) {
-				if (!isset($config['filter'])) {
-					$config['filter'] = array('bool' => array('must' => array()));
-				}
-
-				$config['filter']['bool']['must'][] = $blogfilter;
-			}
-		}
+//		if (isset($args['aggs'])) {
+//			foreach ($args['aggs'] as $facet => &$config) {
+//				if (!isset($config['filter'])) {
+//					$config['filter'] = array('bool' => array('must' => array()));
+//				}
+//
+//				// $config['filter']['bool']['must'][] = $blogfilter;
+//			}
+//		}
 
 		return Config::apply_filters('searcher_query_post_facet_filter', $args);
 	}
@@ -273,7 +271,7 @@ class Searcher
 	public static function _searchField($fields, $type, $exclude, $search, $facets, &$musts, &$filters, &$scored, $numeric)
 	{
 		foreach ($fields as $field) {
-			if (in_array($field, $exclude)) {
+			if (in_array($field, $exclude, true)) {
 				continue;
 			}
 
@@ -363,7 +361,7 @@ class Searcher
 			}
 
 			foreach ($facets as $operation => $facet) {
-				if (is_string($operation) && $operation == 'or') {
+				if (is_string($operation) && $operation === 'or') {
 					// use filters so faceting isn't affecting, allowing the user to select more "or" options
 					$output = &$filters;
 				} else {
