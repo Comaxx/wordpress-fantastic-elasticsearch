@@ -106,7 +106,7 @@ class Searcher
 		}
 
 		foreach ($response->getResults() as $result) {
-			$val['ids'][$result['_hit']['_source']['blog_id']][] = $result->getId();
+			$val['ids'][] = $result->getId();
 		}
 
 		return Config::apply_filters('searcher_results', $val, $response);
