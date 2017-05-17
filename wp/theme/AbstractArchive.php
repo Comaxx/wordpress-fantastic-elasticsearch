@@ -10,6 +10,7 @@ abstract class AbstractArchive
     protected $page = 1;
     protected $search = '';
     protected $_ids;
+    protected $_blogIds;
 
 	public function __construct()
 	{
@@ -49,6 +50,7 @@ abstract class AbstractArchive
 
 		$this->total = $results['total'];
 		$this->_ids = $results['ids'];
+		$this->_blogIds = $results['blog_ids'];
 
 		$this->searched = true;
 	}
@@ -60,7 +62,7 @@ abstract class AbstractArchive
 
 			$posts = array();
 
-			foreach ($this->_ids as $blog_id => $post_ids) {
+			foreach ($this->_blogIds as $blog_id => $post_ids) {
 			    if ( ! count($post_ids)) {
 			        continue;
                 }
@@ -77,7 +79,7 @@ abstract class AbstractArchive
 
             restore_current_blog();
 
-			//usort($posts, array(&$this, 'sort_posts'));
+			usort($posts, array(&$this, 'sort_posts'));
 		}
 
 		return $posts;
@@ -85,7 +87,7 @@ abstract class AbstractArchive
 
 	public function sort_posts($a, $b)
 	{
-		return array_search($b->ID, $this->ids) > array_search($a->ID, $this->ids) ? -1 : 1;
+	    return array_search($b->ID, $this->_ids) > array_search($a->ID, $this->_ids) ? -1 : 1;
 	}
 
 	abstract function facets($wp_query, $existing);
