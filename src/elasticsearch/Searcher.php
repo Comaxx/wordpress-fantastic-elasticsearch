@@ -23,9 +23,9 @@ class Searcher
      *
      * @return array The results of the search
      **/
-    public static function search($search = '', $pageIndex = 0, $size = 10, $facets = array(), $sortByDate = false)
+    public static function search($search = '', $pageIndex = 0, $size = 10, $args = array(), $sortByDate = false)
     {
-        $args = self::_buildQuery($search, $facets);
+        $args = array_merge_recursive(self::_buildQuery($search), $args);
 
         if (empty($args) || (empty($args['query']) && empty($args['aggs']))) {
             return array(
@@ -88,28 +88,31 @@ class Searcher
             'total'  => $response->getTotalHits(),
             'facets' => array(),
             'ids'    => array(),
+            'aggregations' => array(),
         );
 
-        foreach ($response->getAggregations() as $name => $agg) {
-            if (isset($agg['facet']['buckets'])) {
-                foreach ($agg['facet']['buckets'] as $bucket) {
-                    $val['facets'][$name][$bucket['key']] = $bucket['doc_count'];
-                }
-            }
+        $taxonomies = Config::taxonomies();
 
-            if (isset($agg['range']['buckets'])) {
-                foreach ($agg['range']['buckets'] as $bucket) {
-                    $from = isset($bucket['from']) ? $bucket['from'] : '';
-                    $to   = isset($bucket['to']) && $bucket['to'] != '*' ? $bucket['to'] : '';
+        $aggregations = $response->getAggregations();
 
-                    $val['facets'][$name][$from . '-' . $to] = $bucket['doc_count'];
+        if ($aggregations) {
+            foreach ($taxonomies as $taxonomy) {
+                if (array_key_exists($taxonomy, $aggregations) && array_key_exists('buckets',
+                        $aggregations[$taxonomy])
+                ) {
+                    foreach ($aggregations[$taxonomy]['buckets'] as $bucket) {
+                        $val['aggregations'][$taxonomy][] = array(
+                            'count' => $bucket['doc_count'],
+                            'label' => $bucket['key'],
+                        );
+                    }
                 }
             }
         }
 
         foreach ($response->getResults() as $result) {
             $val['blog_ids'][$result->blog_id][] = $result->getId();
-            $val['ids'][] = $result->getId();
+            $val['ids'][]                        = $result->getId();
         }
 
         return Config::apply_filters('searcher_results', $val, $response);
@@ -176,6 +179,24 @@ class Searcher
 
         self::_searchField(Config::customFacets(), 'custom', $exclude, $search, $facets, $musts, $filters, $scored,
             $numeric);
+
+        $taxonomies = Config::taxonomies();
+
+        $args['aggs']['blog_name'] = array(
+            'terms' => array(
+                'field' => 'blog_name'
+            )
+        );
+
+        if ($taxonomies) {
+            foreach ($taxonomies as $taxonomy) {
+                $args['aggs'][$taxonomy] = array(
+                    'terms' => array(
+                        'field' => $taxonomy . '_name',
+                    ),
+                );
+            }
+        }
 
         return Config::apply_filters('searcher_query_post_facet_filter', $args);
     }

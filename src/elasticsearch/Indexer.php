@@ -149,6 +149,10 @@ class Indexer
 			self::_map_values($properties, $type, Config::fields(), 'field');
 			self::_map_values($properties, $type, Config::meta_fields(), 'meta');
 
+			$properties['blog_name'] = array(
+			    'type' => 'keyword'
+            );
+
 			$properties = Config::apply_filters('indexer_map', $properties, $postType);
 
 			$mapping = new \Elastica\Type\Mapping($type, $properties);
@@ -166,7 +170,11 @@ class Indexer
 	static function _build_document($post)
 	{
 		global $blog_id;
-		$document = array('blog_id' => $blog_id);
+		$blogDetails = get_blog_details();
+		$document = array(
+		    'blog_id' => $blog_id,
+            'blog_name' => $blogDetails->blogname
+        );
 		$document = self::_build_field_values($post, $document);
 		$document = self::_build_meta_values($post, $document);
 		$document = self::_build_tax_values($post, $document);
@@ -285,20 +293,22 @@ class Indexer
 
 		foreach ($config_fields as $field) {
 			// set default
-			$props = array('type' => 'string');
+			$props = array(
+			    'type' => 'text'
+            );
 			// detect special field type
 			if (isset($numeric[$field])) {
-				$props['type'] = 'float';
-			} elseif (isset($notanalyzed[$field]) || $kind == 'taxonomy' || $field == 'post_type') {
+				$props['type'] = 'double';
+			} elseif (isset($notanalyzed[$field]) || $kind === 'taxonomy' || $field === 'post_type') {
 				$props['index'] = 'not_analyzed';
-			} elseif ($field == 'post_date') {
+			} elseif ($field === 'post_date') {
 				$props['type'] = 'date';
 				$props['format'] = 'date_time_no_millis';
 			} else {
 				$props['index'] = 'analyzed';
 			}
 
-			if ($props['type'] == 'string' && $props['index'] == 'analyzed') {
+			if ($props['type'] === 'string' && $props['index'] === 'analyzed') {
 				// provides more accurate searches
 
 				$lang = Config::apply_filters('string_language', 'english');
@@ -317,8 +327,10 @@ class Indexer
 			$props = Config::apply_filters('indexer_map_' . $kind, $props, $field);
 
 			// also index taxonomy_name field
-			if ($kind == 'taxonomy') {
-				$tax_name_props = array('type' => 'string');
+			if ($kind === 'taxonomy') {
+				$tax_name_props = array(
+				    'type' => 'keyword'
+                );
 				$tax_name_props = Config::apply_filters('indexer_map_taxonomy_name', $tax_name_props, $field);
 			}
 

@@ -11,6 +11,7 @@ abstract class AbstractArchive
     protected $search = '';
     protected $_ids;
     protected $_blogIds;
+    protected $_aggregations;
 
 	public function __construct()
 	{
@@ -42,6 +43,15 @@ abstract class AbstractArchive
 
 		$this->search = isset($wp_query->query_vars['s']) ? urldecode(str_replace('\"', '"', $wp_query->query_vars['s'])) : '';
 
+		if (isset($_GET['q']) && is_array($_GET['q'])) {
+		    $querys = array();
+		    foreach ($_GET['q'] as $field => $terms) {
+                $querys[] = $field.'_name:("'.implode('" OR "', $terms).'")';
+            }
+
+            $this->search = implode(' AND ', $querys) . ($this->search?' AND '.$this->search:'');
+        }
+
 		$results = Searcher::search($this->search, $this->page, $wp_query->query_vars['posts_per_page'], $args, $this->search ? false : true);
 
 		if ($results == null) {
@@ -51,6 +61,9 @@ abstract class AbstractArchive
 		$this->total = $results['total'];
 		$this->_ids = $results['ids'];
 		$this->_blogIds = $results['blog_ids'];
+		$this->_aggregations = $results['aggregations'];
+
+		$wp_query->aggregations = $results['aggregations'];
 
 		$this->searched = true;
 	}
