@@ -3,7 +3,7 @@ namespace elasticsearch;
 
 class Search extends AbstractArchive
 {
-	function facets($wp_query, $args)
+    public function facets($wp_query, $args)
 	{
 		if (!is_search() || !Config::option('enable')) {
 			return;
@@ -13,5 +13,4 @@ class Search extends AbstractArchive
 	}
 }
 
-new Search();
-?>
+$elasticSearch = new Search();

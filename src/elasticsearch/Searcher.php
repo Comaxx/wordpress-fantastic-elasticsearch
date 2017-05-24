@@ -96,6 +96,8 @@ class Searcher
         $aggregations = $response->getAggregations();
 
         if ($aggregations) {
+            $taxonomies[] = 'blog';
+
             foreach ($taxonomies as $taxonomy) {
                 if (array_key_exists($taxonomy, $aggregations) && array_key_exists('buckets',
                         $aggregations[$taxonomy])
@@ -182,7 +184,7 @@ class Searcher
 
         $taxonomies = Config::taxonomies();
 
-        $args['aggs']['blog_name'] = array(
+        $args['aggs']['blog'] = array(
             'terms' => array(
                 'field' => 'blog_name'
             )

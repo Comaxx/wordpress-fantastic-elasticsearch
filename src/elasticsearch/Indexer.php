@@ -173,7 +173,9 @@ class Indexer
 		$blogDetails = get_blog_details();
 		$document = array(
 		    'blog_id' => $blog_id,
-            'blog_name' => $blogDetails->blogname
+            'blog_name' => array(
+                $blogDetails->blogname
+            )
         );
 		$document = self::_build_field_values($post, $document);
 		$document = self::_build_meta_values($post, $document);

@@ -43,10 +43,10 @@ abstract class AbstractArchive
 
 		$this->search = isset($wp_query->query_vars['s']) ? urldecode(str_replace('\"', '"', $wp_query->query_vars['s'])) : '';
 
-		if (isset($_GET['q']) && is_array($_GET['q'])) {
+		if ($this->getSelectedFilters()) {
 		    $querys = array();
 		    foreach ($_GET['q'] as $field => $terms) {
-                $querys[] = $field.'_name:("'.implode('" OR "', $terms).'")';
+                $querys[] = $field.'_name:("'.implode('" AND "', $terms).'")';
             }
 
             $this->search = implode(' AND ', $querys) . ($this->search?' AND '.$this->search:'');
@@ -62,8 +62,6 @@ abstract class AbstractArchive
 		$this->_ids = $results['ids'];
 		$this->_blogIds = $results['blog_ids'];
 		$this->_aggregations = $results['aggregations'];
-
-		$wp_query->aggregations = $results['aggregations'];
 
 		$this->searched = true;
 	}
@@ -102,6 +100,83 @@ abstract class AbstractArchive
 	{
 	    return array_search($b->ID, $this->_ids) > array_search($a->ID, $this->_ids) ? -1 : 1;
 	}
+
+    /**
+     * @return mixed
+     */
+    public function getAggregations()
+    {
+        return $this->_aggregations;
+    }
+
+    /**
+     * @param mixed $aggregations
+     */
+    public function setAggregations($aggregations)
+    {
+        $this->_aggregations = $aggregations;
+    }
+
+    public function buildUrl($name, $value)
+    {
+        $selectedFilters = $this->getSelectedFilters() ?: array();
+
+        $selectedFilters[$name][] = $value;
+
+        $query = array(
+            's' => get_search_query(),
+            'q' => $selectedFilters,
+        );
+
+        return '?'.http_build_query($query);
+    }
+
+    public function getSearchUrl()
+    {
+        $query = array(
+            's' => get_search_query(),
+        );
+
+        return '?'.http_build_query($query);
+    }
+
+    public function isSelectedFilter($name, $value)
+    {
+        if ($selectedFilters = $this->getSelectedFilters()) {
+            return array_key_exists($name, $selectedFilters) && in_array($value, $selectedFilters[$name], true);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the selected filter from GET param
+     *
+     * @return array
+     */
+    public function getSelectedFilters()
+    {
+        if (array_key_exists('q', $_GET)) {
+            return $_GET['q'];
+        }
+
+        return null;
+    }
+
+    public function buildRemoveUrl($name, $value) {
+        $selectedFilters = $this->getSelectedFilters();
+
+        if (array_key_exists($name, $selectedFilters) && ($idx = array_search($value, $selectedFilters[$name], true)) !== false) {
+            unset($selectedFilters[$name][$idx]);
+        }
+
+        $query = array(
+            's' => get_search_query(),
+            'q' => $selectedFilters,
+        );
+
+        return '?'.http_build_query($query);
+    }
 
 	abstract function facets($wp_query, $existing);
 }
