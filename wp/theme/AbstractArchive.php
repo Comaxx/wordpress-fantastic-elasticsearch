@@ -131,13 +131,25 @@ abstract class AbstractArchive
         return '?'.http_build_query($query);
     }
 
-    public function getSearchUrl()
+    public function getBaseSearchUrl()
     {
         $query = array(
             's' => get_search_query(),
         );
 
         return '?'.http_build_query($query);
+    }
+
+    public function getCurrentSearchUrl()
+    {
+        $selectedFilters = $this->getSelectedFilters() ?: array();
+
+        $query = array(
+            's' => get_search_query(),
+            'q' => $selectedFilters,
+        );
+
+        return '/?'.http_build_query($query);
     }
 
     public function isSelectedFilter($name, $value)
