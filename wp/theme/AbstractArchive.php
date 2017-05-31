@@ -63,11 +63,14 @@ abstract class AbstractArchive
 		$this->_blogIds = $results['blog_ids'];
 		$this->_aggregations = $results['aggregations'];
 
+
+
 		$this->searched = true;
 	}
 
 	public function process_search($posts)
 	{
+	    global $wp_query;
 		if ($this->searched) {
 			$this->searched = false;
 
@@ -91,6 +94,10 @@ abstract class AbstractArchive
             restore_current_blog();
 
 			usort($posts, array(&$this, 'sort_posts'));
+
+            //update active query to match correct pagination data
+            $wp_query->found_posts = $this->total;
+            $wp_query->max_num_pages = ceil($this->total / $wp_query->query_vars['posts_per_page']);
 		}
 
 		return $posts;
