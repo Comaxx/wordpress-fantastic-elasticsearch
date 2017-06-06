@@ -113,7 +113,17 @@ class Searcher
         }
 
         foreach ($response->getResults() as $result) {
-            $val['blog_ids'][$result->blog_id][] = $result->getId();
+            $highlights = array();
+            if ($_highlights = $result->getHighlights()) {
+                foreach ($_highlights as $field => $highlight) {
+                    $highlights[$field] = current($highlight);
+                }
+            }
+
+            $val['blog_ids'][$result->blog_id][] = array(
+                'id' => $result->getId(),
+                'highlights' => $highlights
+            );
             $val['ids'][]                        = $result->getId();
         }
 
@@ -199,6 +209,12 @@ class Searcher
                 );
             }
         }
+
+        $args['highlight']['fields'] = array(
+            '*' => array(
+                'type' => 'plain'
+            )
+        );
 
         return Config::apply_filters('searcher_query_post_facet_filter', $args);
     }

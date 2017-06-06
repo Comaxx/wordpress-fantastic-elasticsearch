@@ -1,6 +1,8 @@
 <?php
 namespace elasticsearch;
 
+define('ACF_SUPPORT', function_exists('get_field_object'));
+
 /**
  * This class handles the magic of building documents and sending them to ElasticSearch for indexing.
  *
@@ -202,6 +204,17 @@ class Indexer
 				$val = get_post_meta($post->ID, $field, true);
 
 				if (isset($val)) {
+                    // Get the label of the value
+                    if (ACF_SUPPORT && ($fieldObject = get_field_object($field, $post->ID))) {
+                        if (is_array($val)) {
+                            foreach ($val as &$v) {
+                                $v = $fieldObject['choices'][$v];
+                            }
+                        } else {
+                            $val = $fieldObject['choices'][$val];
+                        }
+                    }
+
 					$document[$field] = $val;
 				}
 			}
@@ -310,7 +323,7 @@ class Indexer
 				$props['index'] = 'analyzed';
 			}
 
-			if ($props['type'] === 'string' && $props['index'] === 'analyzed') {
+			if ($props['type'] === 'text' && $props['index'] === 'analyzed') {
 				// provides more accurate searches
 
 				$lang = Config::apply_filters('string_language', 'english');

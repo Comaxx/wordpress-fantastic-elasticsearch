@@ -41,7 +41,7 @@ abstract class AbstractArchive
 			$wp_query->query_vars['posts_per_page'] = get_option('posts_per_page');
 		}
 
-		$this->search = isset($wp_query->query_vars['s']) ? urldecode(str_replace('\"', '"', $wp_query->query_vars['s'])) : '';
+		$this->search = $this->_getSearchQuery($wp_query);
 
 		if ($this->getSelectedFilters()) {
 		    $querys = array();
@@ -63,8 +63,6 @@ abstract class AbstractArchive
 		$this->_blogIds = $results['blog_ids'];
 		$this->_aggregations = $results['aggregations'];
 
-
-
 		$this->searched = true;
 	}
 
@@ -83,10 +81,20 @@ abstract class AbstractArchive
 
                 switch_to_blog($blog_id);
 
-			    foreach ($post_ids as $post_id) {
+			    foreach ($post_ids as $post_result) {
 			        /** @var \WP_Post $post */
-                    $post = get_post($post_id);
-                    $post->permalink = get_permalink($post_id);
+                    $post = get_post($post_result['id']);
+                    $post->permalink = get_permalink($post_result['id']);
+                    if (array_key_exists('highlights', $post_result) && count($post_result['highlights'])) {
+                        $fillContent = ! array_key_exists('post_content'.$post_result['highlights']);
+                        foreach ($post_result['highlights'] as $field => $highlight) {
+                            if ($field !== 'post_title' && $fillContent) {
+                                $post->post_content = $highlight;
+                            } else {
+                                $post->{$field} = $highlight;
+                            }
+                        }
+                    }
                     $posts[] = $post;
                 }
             }
@@ -198,6 +206,16 @@ abstract class AbstractArchive
     }
 
 	abstract function facets($wp_query, $existing);
+
+    /**
+     * @param $wp_query
+     *
+     * @return string
+     */
+    private function _getSearchQuery($wp_query)
+    {
+        return isset($wp_query->query_vars['s']) ? '*'.str_replace(array('\"', ' '), array('"', '*'), urldecode($wp_query->query_vars['s'])).'*' : '';
+    }
 }
 
 ?>
