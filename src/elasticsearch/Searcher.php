@@ -210,8 +210,9 @@ class Searcher
             }
         }
 
+        global $wp_query;
         //if search is not empty use highlights
-        if ($search !== '**') {
+        if ($wp_query->query_vars['s'] !== '') {
             $args['highlight']['fields'] = array(
                 '*' => array(
                     'type' => 'plain'
