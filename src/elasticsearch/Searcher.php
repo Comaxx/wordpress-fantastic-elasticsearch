@@ -210,11 +210,14 @@ class Searcher
             }
         }
 
-        $args['highlight']['fields'] = array(
-            '*' => array(
-                'type' => 'plain'
-            )
-        );
+        //if search is not empty use highlights
+        if ($search !== '**') {
+            $args['highlight']['fields'] = array(
+                '*' => array(
+                    'type' => 'plain'
+                )
+            );
+        }
 
         return Config::apply_filters('searcher_query_post_facet_filter', $args);
     }
