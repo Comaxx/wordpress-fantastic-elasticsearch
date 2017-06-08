@@ -197,8 +197,10 @@ class Indexer
 	{
 		$keys = get_post_custom_keys($post->ID);
 
+		$all_meta_fields = $acf_fields = Config::meta_fields();
+
 		if (is_array($keys)) {
-			$meta_fields = array_intersect(Config::meta_fields(), $keys);
+			$meta_fields = array_intersect($all_meta_fields, $keys);
 
 			foreach ($meta_fields as $field) {
 				$val = get_post_meta($post->ID, $field, true);
@@ -206,7 +208,14 @@ class Indexer
 				if (isset($val)) {
                     // Get the label of the value
                     if (ACF_SUPPORT && ($fieldObject = get_field_object($field, $post->ID))) {
-                        if (is_array($val)) {
+                        if ($fieldObject['type'] === 'repeater') {
+                            $val = '';
+                            while (has_sub_field($field, $post->ID)) {
+                                foreach ($fieldObject['sub_fields'] as $subfield) {
+                                    $val .= get_sub_field($subfield['name']) . PHP_EOL;
+                                }
+                            }
+                        } else if (is_array($val)) {
                             foreach ($val as &$v) {
                                 $v = $fieldObject['choices'][$v];
                             }
@@ -215,7 +224,7 @@ class Indexer
                         }
                     }
 
-					$document[$field] = $val;
+					$document[$field] = strip_tags($val);
 				}
 			}
 		}
