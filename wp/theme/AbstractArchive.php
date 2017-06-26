@@ -73,7 +73,8 @@ abstract class AbstractArchive
 			$this->searched = false;
 
 			$posts = array();
-
+			//keep track of current blog id to reset at end
+            $currentBlogId = get_current_blog_id();
 			foreach ($this->_blogIds as $blog_id => $post_ids) {
 			    if ( ! count($post_ids)) {
 			        continue;
@@ -97,9 +98,13 @@ abstract class AbstractArchive
                     }
                     $posts[] = $post;
                 }
+
             }
 
-            restore_current_blog();
+            //use switch to original blog id since restore_current_blog only works for the last switch
+            //when having more than 2 switches (foreach loop above) it will not return to the correct blog
+            switch_to_blog($currentBlogId);
+            wp_reset_postdata();
 
 			usort($posts, array(&$this, 'sort_posts'));
 
