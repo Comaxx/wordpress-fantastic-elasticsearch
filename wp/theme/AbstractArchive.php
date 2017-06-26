@@ -43,9 +43,9 @@ abstract class AbstractArchive
 
 		$this->search = $this->_getSearchQuery($wp_query);
 
-		if ($this->getSelectedFilters()) {
+		if ($filters = $this->getSelectedFilters()) {
 		    $querys = array();
-		    foreach ($_GET['q'] as $field => $terms) {
+		    foreach ($filters as $field => $terms) {
                 $querys[] = $field.'_name:("'.implode('" AND "', $terms).'")';
             }
 
@@ -130,6 +130,31 @@ abstract class AbstractArchive
     }
 
     /**
+     * Get aggregations for given post type
+     *
+     * @param string $postType The post type to get aggregations for
+     *
+     * @return array}null
+     */
+    public function getPostTypeAggregations($postType)
+    {
+        $query = 'post_type:("'.$postType.'")';
+
+        if ($filters = $this->getSelectedFilters()) {
+            $querys = array();
+            foreach ($filters as $field => $terms) {
+                $querys[] = $field.'_name:("'.implode('" AND "', $terms).'")';
+            }
+
+            $query = implode(' AND ', $querys) . ($query?' AND '.$query:'');
+        }
+
+        $results = Searcher::search($query);
+
+        return $results?$results['aggregations']:null;
+    }
+
+    /**
      * @param mixed $aggregations
      */
     public function setAggregations($aggregations)
@@ -137,16 +162,19 @@ abstract class AbstractArchive
         $this->_aggregations = $aggregations;
     }
 
-    public function buildUrl($name, $value)
+    public function buildUrl($name, $value, $addSearchQuery = true)
     {
         $selectedFilters = $this->getSelectedFilters() ?: array();
 
         $selectedFilters[$name][] = $value;
 
         $query = array(
-            's' => get_search_query(),
             'q' => $selectedFilters,
         );
+
+        if ($addSearchQuery) {
+            $query['s'] = get_search_query();
+        }
 
         return '?'.http_build_query($query);
     }
@@ -195,7 +223,7 @@ abstract class AbstractArchive
         return null;
     }
 
-    public function buildRemoveUrl($name, $value) {
+    public function buildRemoveUrl($name, $value, $addSearchQuery = true) {
         $selectedFilters = $this->getSelectedFilters();
 
         if (array_key_exists($name, $selectedFilters) && ($idx = array_search($value, $selectedFilters[$name], true)) !== false) {
@@ -203,9 +231,12 @@ abstract class AbstractArchive
         }
 
         $query = array(
-            's' => get_search_query(),
             'q' => $selectedFilters,
         );
+
+        if ($addSearchQuery) {
+            $query['s'] = get_search_query();
+        }
 
         return '?'.http_build_query($query);
     }
