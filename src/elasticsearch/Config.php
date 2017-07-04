@@ -42,6 +42,8 @@ class Config
 		$options[$name] = $value;
 
 		update_option('elasticsearch', $options);
+
+        self::$options = get_option('elasticsearch');
 	}
 
 	/**

@@ -145,7 +145,7 @@ class Searcher
 
         foreach (Config::taxonomies() as $tax) {
             if ($search) {
-                $score = Config::score('tax', $tax);
+                $score = Config::score('tax', $tax)?:1;
 
                 if ($score > 0) {
                     $scored[] = "{$tax}_name^$score";
