@@ -87,7 +87,7 @@ abstract class AbstractArchive
                     $post = get_post($post_result['id']);
                     $post->permalink = get_permalink($post_result['id']);
                     if (array_key_exists('highlights', $post_result) && count($post_result['highlights'])) {
-                        $fillContent = ! array_key_exists('post_content'.$post_result['highlights']);
+                        $fillContent = ! array_key_exists('post_content', $post_result['highlights']);
                         foreach ($post_result['highlights'] as $field => $highlight) {
                             if ($field !== 'post_title' && $fillContent) {
                                 $post->post_content = $highlight;

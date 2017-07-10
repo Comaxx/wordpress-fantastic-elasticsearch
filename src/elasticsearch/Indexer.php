@@ -12,6 +12,16 @@ define('ACF_SUPPORT', function_exists('get_field_object'));
  **/
 class Indexer
 {
+    private static $_postTypeRelevance = array();
+
+    /**
+     * @param array $postTypeRelevance
+     */
+    public static function setPostTypeRelevance($postTypeRelevance)
+    {
+        self::$_postTypeRelevance = $postTypeRelevance;
+    }
+
 	/**
 	 * The number of posts to index per page when re-indexing
 	 *
@@ -154,6 +164,9 @@ class Indexer
 			$properties['blog_name'] = array(
 			    'type' => 'keyword'
             );
+			$properties['post_type_relevance'] = array(
+			    'type' => 'integer',
+            );
 
 			$properties = Config::apply_filters('indexer_map', $properties, $postType);
 
@@ -179,6 +192,11 @@ class Indexer
                 $blogDetails->blogname
             )
         );
+
+		if (array_key_exists($post->post_type, self::$_postTypeRelevance)) {
+            $document['post_type_relevance'] = self::$_postTypeRelevance[$post->post_type];
+        }
+
 		$document = self::_build_field_values($post, $document);
 		$document = self::_build_meta_values($post, $document);
 		$document = self::_build_tax_values($post, $document);

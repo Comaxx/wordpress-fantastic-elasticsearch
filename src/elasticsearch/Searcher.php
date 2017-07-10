@@ -61,7 +61,10 @@ class Searcher
                 if ($sortByDate) {
                     $query->addSort(array('post_date' => 'desc'));
                 } else {
-                    $query->addSort('_score');
+                    $query->addSort(array(
+                        'post_type_relevance' => 'desc',
+                        '_score' => 'asc'
+                    ));
                 }
             }
 
