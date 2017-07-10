@@ -22,6 +22,14 @@ class Indexer
         self::$_postTypeRelevance = $postTypeRelevance;
     }
 
+    /**
+     * @return array
+     */
+    public static function getPostTypeRelevance()
+    {
+        return self::$_postTypeRelevance;
+    }
+
 	/**
 	 * The number of posts to index per page when re-indexing
 	 *

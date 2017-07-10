@@ -61,10 +61,7 @@ class Searcher
                 if ($sortByDate) {
                     $query->addSort(array('post_date' => 'desc'));
                 } else {
-                    $query->addSort(array(
-                        'post_type_relevance' => 'desc',
-                        '_score' => 'asc'
-                    ));
+                    $query->addSort('_score');
                 }
             }
 
@@ -171,6 +168,16 @@ class Searcher
             $numeric);
 
         if ($search && count($scored) > 0) {
+            $postTypeRelevance = array();
+            foreach (Indexer::getPostTypeRelevance() as $relevance) {
+                $postTypeRelevance[] = '(post_type_relevance:'.$relevance.')^'.(1+$relevance/10);
+            }
+            $postTypeRelevance[] = '(post_type_relevance:0)';
+
+            if (count($postTypeRelevance)) {
+                $search .= ' AND ('.implode(' OR ', $postTypeRelevance).')';
+            }
+
             $qs = array(
                 'fields' => $scored,
                 'query'  => $search,
