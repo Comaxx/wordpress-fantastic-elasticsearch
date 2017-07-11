@@ -197,7 +197,9 @@ abstract class AbstractArchive
             'q' => $selectedFilters,
         );
 
-        return '/?'.http_build_query($query);
+        $blog = get_blog_details();
+
+        return $blog->path.'?'.http_build_query($query);
     }
 
     public function isSelectedFilter($name, $value)
