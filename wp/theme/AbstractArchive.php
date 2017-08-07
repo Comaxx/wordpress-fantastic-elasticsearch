@@ -252,7 +252,7 @@ abstract class AbstractArchive
      */
     private function _getSearchQuery($wp_query)
     {
-        return isset($wp_query->query_vars['s']) ? '*'.str_replace(array('\"', ' '), array('"', '*'), urldecode($wp_query->query_vars['s'])).'*' : '';
+        return isset($wp_query->query_vars['s']) ? str_replace(array('\"'), array('"'), urldecode($wp_query->query_vars['s'])) : '';
     }
 }
 
