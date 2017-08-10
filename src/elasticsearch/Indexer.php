@@ -250,6 +250,10 @@ class Indexer
                         }
                     }
 
+                    if (is_array($val)) {
+                        $val = implode(' ', $val);
+                    }
+
 					$document[$field] = strip_tags($val);
 				}
 			}
