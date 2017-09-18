@@ -49,7 +49,7 @@ abstract class AbstractArchive
                 $querys[] = $field.'_name:("'.implode('" AND "', $terms).'")';
             }
 
-            $this->search = implode(' AND ', $querys) . ($this->search?' AND '.$this->search:'');
+            $this->search = ($this->search?$this->search.' AND ':'').implode(' AND ', $querys);
         }
 
 		$results = Searcher::search($this->search, $this->page, $wp_query->query_vars['posts_per_page'], $args, $this->search ? false : true);
