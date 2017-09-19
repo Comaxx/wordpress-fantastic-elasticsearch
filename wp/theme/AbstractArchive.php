@@ -41,7 +41,8 @@ abstract class AbstractArchive
 			$wp_query->query_vars['posts_per_page'] = get_option('posts_per_page');
 		}
 
-		$this->search = $this->_getSearchQuery($wp_query);
+		//add brackets to make sure the search is seen as a standalone part of the query (relevance is added via AND operator)
+		$this->search = '('.$this->_getSearchQuery($wp_query).')';
 
 		if ($filters = $this->getSelectedFilters()) {
 		    $querys = array();
