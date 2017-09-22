@@ -53,7 +53,7 @@ abstract class AbstractArchive
             $this->search = ($this->search?$this->search.' AND ':'').implode(' AND ', $querys);
         }
 
-		$results = Searcher::search($this->search, $this->page, $wp_query->query_vars['posts_per_page'], $args, true);
+		$results = Searcher::search($this->search, $this->page, $wp_query->query_vars['posts_per_page'], $args);
 
 		if ($results == null) {
 			return null;

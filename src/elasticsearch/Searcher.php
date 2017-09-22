@@ -170,7 +170,7 @@ class Searcher
         if ($search && count($scored) > 0) {
             $postTypeRelevance = array();
             foreach (Indexer::getPostTypeRelevance() as $relevance) {
-                $postTypeRelevance[] = '(post_type_relevance:'.$relevance.')^'.(1+$relevance/10);
+                $postTypeRelevance[] = '(post_type_relevance:'.$relevance.')^'.($relevance/2);
             }
             $postTypeRelevance[] = '(post_type_relevance:0)';
 
