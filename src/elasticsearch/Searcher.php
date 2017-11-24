@@ -183,12 +183,6 @@ class Searcher
                 'query'  => $search,
             );
 
-            $fuzzy = Config::option('fuzzy');
-
-            if ($fuzzy && strpos($search, '~') !== false) {
-                $qs['fuzziness'] = $fuzzy;
-            }
-
             $qs = Config::apply_filters('searcher_query_string', $qs);
 
             $args['query']['query_string'] = $qs;
