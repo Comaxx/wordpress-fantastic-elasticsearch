@@ -42,7 +42,8 @@ abstract class AbstractArchive
 		}
 
 		//add brackets to make sure the search is seen as a standalone part of the query (relevance is added via AND operator)
-		$this->search = '('.$this->_getSearchQuery($wp_query).')';
+        $searchQuery = $this->_getSearchQuery($wp_query);
+		$this->search = $searchQuery?'('.$searchQuery.')':'';
 
 		if ($filters = $this->getSelectedFilters()) {
 		    $querys = array();
@@ -53,18 +54,23 @@ abstract class AbstractArchive
             $this->search = ($this->search?$this->search.' AND ':'').implode(' AND ', $querys);
         }
 
-		$results = Searcher::search($this->search, $this->page, $wp_query->query_vars['posts_per_page'], $args);
+        if ($this->search) {
+            $results = Searcher::search($this->search, $this->page, $wp_query->query_vars['posts_per_page'], $args);
 
-		if ($results == null) {
-			return null;
-		}
+            if ($results == null) {
+                return null;
+            }
 
-		$this->total = $results['total'];
-		$this->_ids = $results['ids'];
-		$this->_blogIds = $results['blog_ids'];
-		$this->_aggregations = $results['aggregations'];
 
-		$this->searched = true;
+            $this->total         = $results['total'];
+            $this->_ids          = $results['ids'];
+            $this->_blogIds      = $results['blog_ids'];
+            $this->_aggregations = $results['aggregations'];
+
+            $this->searched = true;
+        }
+
+        return null;
 	}
 
 	public function process_search($posts)
@@ -253,7 +259,8 @@ abstract class AbstractArchive
      */
     private function _getSearchQuery($wp_query)
     {
-        return isset($wp_query->query_vars['s']) ? str_replace(array('\"'), array('"'), urldecode($wp_query->query_vars['s'])) . '~1' : '';
+        $query = isset($wp_query->query_vars['s']) ? str_replace(['\\', '"'], '', urldecode($wp_query->query_vars['s'])) : '';
+        return $query ? $query . '~1' : '';
     }
 }
 
