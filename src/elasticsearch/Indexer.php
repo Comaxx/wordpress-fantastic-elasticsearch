@@ -238,7 +238,12 @@ class Indexer
                             $val = '';
                             while (has_sub_field($field, $post->ID)) {
                                 foreach ($fieldObject['sub_fields'] as $subfield) {
-                                    $val .= get_sub_field($subfield['name']) . PHP_EOL;
+                                    $subfield = get_sub_field($subfield['name']);
+                                    if ($subfield instanceof \WP_Term) {
+                                        $val .= $subfield->name;
+                                    } else {
+                                        $val .= $subfield . PHP_EOL;
+                                    }
                                 }
                             }
                         } else if (is_array($val)) {
