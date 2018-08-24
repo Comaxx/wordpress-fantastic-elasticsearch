@@ -239,7 +239,7 @@ class Indexer
                             while (has_sub_field($field, $post->ID)) {
                                 foreach ($fieldObject['sub_fields'] as $subfield) {
                                     $subfield = get_sub_field($subfield['name']);
-                                    if ($subfield instanceof \WP_Term) {
+                                    if ($subfield instanceof \WP_Term || $subfield instanceof \WP_Post) {
                                         $val .= $subfield->name;
                                     } else {
                                         $val .= $subfield . PHP_EOL;
@@ -251,7 +251,9 @@ class Indexer
                                 $v = $fieldObject['choices'][$v];
                             }
                         } else {
-                            $val = $fieldObject['choices'][$val];
+                            if (array_key_exists('choices', $fieldObject)) {
+                                $val = $fieldObject['choices'][$val];
+                            }
                         }
                     }
 
