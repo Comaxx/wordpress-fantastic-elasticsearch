@@ -47,9 +47,9 @@ class MultiBuilder implements MultiBuilderInterface
         reset($searches);
 
         foreach ($data['responses'] as $responseData) {
-            list($key, $search) = each($searches);
-
-            $resultSets[$key] = $this->buildResultSet(new Response($responseData), $search);
+            foreach ($searches as $key=>$search) {
+                $resultSets[$key] = $this->buildResultSet(new Response($responseData), $search);
+            }
         }
 
         return $resultSets;

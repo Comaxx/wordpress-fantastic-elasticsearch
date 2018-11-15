@@ -209,7 +209,7 @@ class BoolFilterTest extends BaseTest
             self::markTestSkipped('These objects are not supported in PHP 7');
         }
 
-        $filter = new \Elastica\Filter\Bool();
+        $filter = new \Elastica\Filter\BoolOld();
 
         $filter->addShould('fail!');
     }
@@ -223,7 +223,7 @@ class BoolFilterTest extends BaseTest
             self::markTestSkipped('These objects are not supported in PHP 7');
         }
 
-        $reflection = new \ReflectionClass(new \Elastica\Filter\Bool());
+        $reflection = new \ReflectionClass(new \Elastica\Filter\BoolOld());
         $this->assertFileDeprecated($reflection->getFileName(), 'Deprecated: Filters are deprecated. Use queries in filter context. See https://www.elastic.co/guide/en/elasticsearch/reference/2.0/query-dsl-filters.html');
     }
 }

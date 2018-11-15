@@ -307,7 +307,7 @@ class BoolQueryTest extends BaseTest
         $index->refresh();
 
         $this->hideDeprecated();
-        $boolQuery = new \Elastica\Query\Bool();
+        $boolQuery = new \Elastica\Query\BoolOld();
         $this->showDeprecated();
 
         $resultSet = $type->search($boolQuery);

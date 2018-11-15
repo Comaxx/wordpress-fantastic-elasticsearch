@@ -12,6 +12,6 @@ trigger_error('Elastica\Transport\Null is deprecated. Use NullTransport instead.
  *
  * @deprecated Use NullTransport instead. From PHP7 null is reserved word and this class will be removed in further Elastica releases
  */
-class Null extends NullTransport
+class NullOld extends NullTransport
 {
 }
