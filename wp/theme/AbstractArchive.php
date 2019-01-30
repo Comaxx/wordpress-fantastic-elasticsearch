@@ -82,30 +82,32 @@ abstract class AbstractArchive
 			$posts = array();
 			//keep track of current blog id to reset at end
             $currentBlogId = get_current_blog_id();
-			foreach ($this->_blogIds as $blog_id => $post_ids) {
-			    if ( ! count($post_ids)) {
-			        continue;
-                }
+            if ($this->_blogIds) {
+                foreach ($this->_blogIds as $blog_id => $post_ids) {
+                    if ( ! count($post_ids)) {
+                        continue;
+                    }
 
-                switch_to_blog($blog_id);
+                    switch_to_blog($blog_id);
 
-			    foreach ($post_ids as $post_result) {
-			        /** @var \WP_Post $post */
-                    $post = get_post($post_result['id']);
-                    $post->permalink = get_permalink($post_result['id']);
-                    if (array_key_exists('highlights', $post_result) && count($post_result['highlights'])) {
-                        $fillContent = ! array_key_exists('post_content', $post_result['highlights']);
-                        foreach ($post_result['highlights'] as $field => $highlight) {
-                            if ($field !== 'post_title' && $fillContent) {
-                                $post->post_content = $highlight;
-                            } else {
-                                $post->{$field} = $highlight;
+                    foreach ($post_ids as $post_result) {
+                        /** @var \WP_Post $post */
+                        $post            = get_post($post_result['id']);
+                        $post->permalink = get_permalink($post_result['id']);
+                        if (array_key_exists('highlights', $post_result) && count($post_result['highlights'])) {
+                            $fillContent = ! array_key_exists('post_content', $post_result['highlights']);
+                            foreach ($post_result['highlights'] as $field => $highlight) {
+                                if ($field !== 'post_title' && $fillContent) {
+                                    $post->post_content = $highlight;
+                                } else {
+                                    $post->{$field} = $highlight;
+                                }
                             }
                         }
+                        $posts[] = $post;
                     }
-                    $posts[] = $post;
-                }
 
+                }
             }
 
             //use switch to original blog id since restore_current_blog only works for the last switch
