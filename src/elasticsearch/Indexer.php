@@ -361,7 +361,7 @@ class Indexer
 			if (isset($numeric[$field])) {
 				$props['type'] = 'double';
 			} elseif (isset($notanalyzed[$field]) || $kind === 'taxonomy' || $field === 'post_type') {
-				$props['index'] = 'not_analyzed';
+				$props['index'] = 'true';
 			} elseif ($field === 'post_date') {
 				$props['type'] = 'date';
 				$props['format'] = 'date_time_no_millis';

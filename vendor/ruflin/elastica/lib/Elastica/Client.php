@@ -654,19 +654,20 @@ class Client
      *
      * It's possible to make any REST query directly over this method
      *
-     * @param string       $path   Path to call
-     * @param string       $method Rest method to use (GET, POST, DELETE, PUT)
-     * @param array|string $data   OPTIONAL Arguments as array or pre-encoded string
-     * @param array        $query  OPTIONAL Query params
+     * @param string       $path        Path to call
+     * @param string       $method      Rest method to use (GET, POST, DELETE, PUT)
+     * @param array|string $data        OPTIONAL Arguments as array or pre-encoded string
+     * @param array        $query       OPTIONAL Query params
+     * @param string       $contentType Content-Type sent with this request
      *
      * @throws Exception\ConnectionException|\Exception
      *
      * @return Response Response object
      */
-    public function request($path, $method = Request::GET, $data = [], array $query = [])
+    public function request($path, $method = Request::GET, $data = [], array $query = [], $contentType = Request::DEFAULT_CONTENT_TYPE)
     {
         $connection = $this->getConnection();
-        $request = $this->_lastRequest = new Request($path, $method, $data, $query, $connection);
+        $request = $this->_lastRequest = new Request($path, $method, $data, $query, $connection, $contentType);
         $this->_lastResponse = null;
 
         try {

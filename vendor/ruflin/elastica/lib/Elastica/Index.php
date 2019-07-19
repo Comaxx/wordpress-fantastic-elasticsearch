@@ -7,7 +7,6 @@ use Elastica\Index\Settings as IndexSettings;
 use Elastica\Index\Stats as IndexStats;
 use Elastica\ResultSet\BuilderInterface;
 use Elasticsearch\Endpoints\AbstractEndpoint;
-use Elasticsearch\Endpoints\Cluster\Settings\Put;
 use Elasticsearch\Endpoints\DeleteByQuery;
 use Elasticsearch\Endpoints\Indices\Aliases\Update;
 use Elasticsearch\Endpoints\Indices\Analyze;
@@ -21,6 +20,7 @@ use Elasticsearch\Endpoints\Indices\ForceMerge;
 use Elasticsearch\Endpoints\Indices\Mapping\Get;
 use Elasticsearch\Endpoints\Indices\Open;
 use Elasticsearch\Endpoints\Indices\Refresh;
+use Elasticsearch\Endpoints\Indices\Settings\Put;
 
 /**
  * Elastica index object.
@@ -154,8 +154,8 @@ class Index implements SearchableInterface
     /**
      * Deletes entries in the db based on a query.
      *
-     * @param \Elastica\Query|string|array $query   Query object or array
-     * @param array                        $options Optional params
+     * @param \Elastica\Query|\Elastica\Query\AbstractQuery|string|array $query   Query object or array
+     * @param array                                                      $options Optional params
      *
      * @return \Elastica\Response
      *
@@ -563,12 +563,12 @@ class Index implements SearchableInterface
     }
 
     /**
-     * Analyzes a string.
+     * Analyzes a string, or a list of strings.
      *
      * Detailed arguments can be found here in the link
      *
-     * @param string $text String to be analyzed
-     * @param array  $args OPTIONAL Additional arguments
+     * @param string[]|string $text String or list of strings to be analyzed
+     * @param array           $args OPTIONAL Additional arguments
      *
      * @return array Server response
      *
@@ -577,7 +577,7 @@ class Index implements SearchableInterface
     public function analyze($text, $args = [])
     {
         $endpoint = new Analyze();
-        $endpoint->setBody($text);
+        $endpoint->setBody(['text' => $text]);
         $endpoint->setParams($args);
 
         $data = $this->requestEndpoint($endpoint)->getData();

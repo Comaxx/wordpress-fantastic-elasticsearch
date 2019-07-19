@@ -220,7 +220,7 @@ class ResultSet implements \Iterator, \Countable, \ArrayAccess
      */
     public function count()
     {
-        return sizeof($this->_results);
+        return count($this->_results);
     }
 
     /**
@@ -236,7 +236,7 @@ class ResultSet implements \Iterator, \Countable, \ArrayAccess
     /**
      * Returns the current object of the set.
      *
-     * @return \Elastica\Result|bool Set object or false if not valid (no more entries)
+     * @return \Elastica\Result|false Set object or false if not valid (no more entries)
      */
     public function current()
     {

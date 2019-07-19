@@ -42,7 +42,7 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
 
     /** @var array A list of supported features */
     private static $supportedFeatures = [
-        'stash_in_path', 'warnings'
+        'stash_in_path', 'warnings', 'headers'
     ];
 
     /** @var array A mapping for endpoint when there is a reserved keywords for the method / namespace name */
@@ -64,6 +64,8 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
     private static $skippedFiles = [
         'indices.create/10_basic.yaml' => 'Temporary: Yaml parser doesnt support "inline" empty keys',
         'indices.put_mapping/10_basic.yaml' => 'Temporary: Yaml parser doesnt support "inline" empty keys',
+        'search/110_field_collapsing.yaml' => 'Temporary: parse error, malformed inline yaml',
+        'cat.nodes/10_basic.yaml' => 'Temporary: parse error, something about $body: |'
     ];
 
     /**
@@ -210,6 +212,14 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
             return $this->operationGreaterThan($operation->{$operationName}, $lastOperationResult, $context, $testName);
         }
 
+        if ('lte' === $operationName) {
+            return $this->operationLessThanOrEqual($operation->{$operationName}, $lastOperationResult, $context, $testName);
+        }
+
+        if ('t' === $operationName) {
+            return $this->operationLessThan($operation->{$operationName}, $lastOperationResult, $context, $testName);
+        }
+
         if ('length' === $operationName) {
             return $this->operationLength($operation->{$operationName}, $lastOperationResult, $context, $testName);
         }
@@ -242,6 +252,7 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
     {
         $expectedError = null;
         $expectedWarnings = null;
+        $headers = null;
 
         // Check if a error must be caught
         if ('catch' === key($operation)) {
@@ -252,6 +263,12 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
         // Check if a warning must be caught
         if ('warnings' === key($operation)) {
             $expectedWarnings = current($operation);
+            next($operation);
+        }
+
+        // Any specific headers to add?
+        if ('headers' === key($operation)) {
+            $headers = current($operation);
             next($operation);
         }
 
@@ -281,6 +298,10 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
             $endpointParams->client['future'] = true;
         }
 
+        if ($headers != null) {
+            $endpointParams->client['headers'] = $headers;
+        }
+
         list($method, $namespace) = $this->mapEndpoint($method, $namespace);
 
         if (null !== $namespace) {
@@ -297,7 +318,9 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
 
         // TODO remove this after cat testing situation resolved
         if ($caller instanceof Elasticsearch\Namespaces\CatNamespace) {
-            $endpointParams->format = 'text';
+            if (!isset($endpointParams->format)) {
+                $endpointParams->format = 'text';
+            }
         }
 
         // Exist* methods have to be manually 'unwrapped' into true/false for async
@@ -421,8 +444,8 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
         }
 
         // Check to make sure we're adding headers
-        static::assertArrayHasKey('Content-type', $last['request']['headers'], print_r($last['request']['headers'], true));
-        static::assertEquals('application/json', $last['request']['headers']['Content-type'][0], print_r($last['request']['headers'], true));
+        static::assertArrayHasKey('Content-Type', $last['request']['headers'], print_r($last['request']['headers'], true));
+        static::assertEquals('application/json', $last['request']['headers']['Content-Type'][0], print_r($last['request']['headers'], true));
         static::assertArrayHasKey('Accept', $last['request']['headers'], print_r($last['request']['headers'], true));
         static::assertEquals('application/json', $last['request']['headers']['Accept'][0], print_r($last['request']['headers'], true));
 
@@ -539,6 +562,40 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Check if a field in the last operation is less than or equal a value
+     *
+     * @param $operation
+     * @param $lastOperationResult
+     * @param $testName
+     */
+    public function operationLessThanOrEqual($operation, $lastOperationResult, &$context, $testName)
+    {
+        $value = $this->resolveValue($lastOperationResult, key($operation), $context);
+        $expected = current($operation);
+
+        static::assertLessThanOrEqual($expected, $value, 'Failed to lte in test ' . $testName);
+
+        return $lastOperationResult;
+    }
+
+    /**
+     * Check if a field in the last operation is less than a value
+     *
+     * @param $operation
+     * @param $lastOperationResult
+     * @param $testName
+     */
+    public function operationLessThan($operation, $lastOperationResult, &$context, $testName)
+    {
+        $value = $this->resolveValue($lastOperationResult, key($operation), $context);
+        $expected = current($operation);
+
+        static::assertLessThan($expected, $value, 'Failed to lt in test ' . $testName);
+
+        return $lastOperationResult;
+    }
+
+    /**
      * Check if a field in the last operation has length of a value
      *
      * @param $operation
@@ -587,8 +644,16 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
             return $lastOperationResult;
         }
 
-        if (property_exists($operation, 'features') && !in_array($operation->features, static::$supportedFeatures, true)) {
-            static::markTestSkipped(sprintf('Feature(s) %s not supported in test "%s"', json_encode($operation->features), $testName));
+        if (property_exists($operation, 'features')) {
+            if (is_array($operation->features)) {
+                if (count(array_intersect($operation->features, static::$supportedFeatures)) != count($operation->features)) {
+                    static::markTestSkipped(sprintf('Feature(s) %s not supported in test "%s"', json_encode($operation->features), $testName));
+                }
+            } else {
+                if (!in_array($operation->features, static::$supportedFeatures, true)) {
+                    static::markTestSkipped(sprintf('Feature(s) %s not supported in test "%s"', json_encode($operation->features), $testName));
+                }
+            }
         }
 
         if (property_exists($operation, 'version')) {
@@ -802,6 +867,9 @@ class YamlRunnerTest extends \PHPUnit_Framework_TestCase
     private function splitDocument($file, $path, $filter = null)
     {
         $fileContent = file_get_contents($file);
+        // cleanup some bad comments
+        $fileContent = str_replace('"#', '" #', $fileContent);
+
         $documents = explode("---\n", $fileContent);
         $documents = array_filter($documents, function ($item) {
             return trim($item) !== '';

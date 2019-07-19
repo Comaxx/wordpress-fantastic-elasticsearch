@@ -156,11 +156,11 @@ class Connection implements ConnectionInterface
             'uri'         => $this->getURI($uri, $params),
             'body'        => $body,
             'headers'     => array_merge([
-                'host'  => [$this->host]
+                'Host'  => [$this->host]
             ], $this->headers)
         ];
 
-        $request = array_merge_recursive($request, $this->connectionParams, $options);
+        $request = array_replace_recursive($request, $this->connectionParams, $options);
 
         // RingPHP does not like if client is empty
         if (empty($request['client'])) {
@@ -456,7 +456,7 @@ class Connection implements ConnectionInterface
             ]
         ];
 
-        return $this->performRequest('GET', '/_nodes/_all/clear', null, null, $options);
+        return $this->performRequest('GET', '/_nodes/', null, null, $options);
     }
 
     /**

@@ -1,7 +1,8 @@
 # Change Log
-All notable changes to this project will be documented in this file based on the [Keep a Changelog](http://keepachangelog.com/) Standard. This project adheres to [Semantic Versioning](http://semver.org/).
+All notable changes to this project will be documented in this file based on the [Keep a Changelog](http://keepachangelog.com/) Standard.
+This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased](https://github.com/ruflin/Elastica/compare/5.2.0...master)
+## [Unreleased](https://github.com/ruflin/Elastica/compare/5.3.5...master)
 
 ### Backward Compatibility Breaks
 
@@ -11,10 +12,102 @@ All notable changes to this project will be documented in this file based on the
 
 ### Improvements
 
+
+## [5.3.5](https://github.com/ruflin/Elastica/compare/5.3.4...5.3.5)
+
+### Added
+
+* [Backported] Added a transport class for mocking a HTTP 403 error codes, useful for testing response failures in
+    inheriting clients [#1592](https://github.com/ruflin/Elastica/pull/1592)
+
+
+## [5.3.4](https://github.com/ruflin/Elastica/compare/5.3.3...5.3.4)
+
+### Improvements
+
+- [Backported] Reduced memory footprint of response by not keeping the raw JSON data when JSON after JSON has been parsed. [#1588](https://github.com/ruflin/Elastica/pull/1588)
+- Fix PHPDoc block for `ResultSet::current()` [#1591](https://github.com/ruflin/Elastica/pull/1591)
+- Fix PHPDoc block for `Index:analyze` [#1586](https://github.com/ruflin/Elastica/pull/1586)
+
+
+## [5.3.3](https://github.com/ruflin/Elastica/compare/5.3.2...5.3.3)
+
+### Bugfixes
+
+- [Backported] Corrected phpdoc types to avoid warnings from code quality tools. [#1525](https://github.com/ruflin/Elastica/pull/1525)
+
+
+## [5.3.2](https://github.com/ruflin/Elastica/compare/5.3.1...5.3.2)
+
+### Bugfixes
+- Remove [`each()`](http://www.php.net/each) usage to fix PHP 7.2 compatibility
+- Fix [#1435](https://github.com/ruflin/Elastica/issues/1435) forcing `doc_as_upsert` to be boolean, acording [Elastic doc-update documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-update.html#_literal_doc_as_upsert_literal)
+
+### Added
+
+* Added support for multiple bucket sort orders for aggregations.
+
+
+## [5.3.1](https://github.com/ruflin/Elastica/compare/5.3.0...5.3.1)
+
+### Bugfixes
+
+- Removed deprecated `min_word_len` field in `Elastica\Suggest\Term`.
+  Use `min_word_length` instead.
+
+### Added
+
+- Added clear() to `Scroll` for closing search context on ES manually
+- In PHP 7.2 count() now raises a warning when an invalid parameter is passed. Only arrays and objects implementing the Countable interface should be passed. [#1378](https://github.com/ruflin/Elastica/pull/1378)
+
+### Improvements
+
+- Clear search context on ES after usage in `Scroll`
+
+
+## [5.3.0](https://github.com/ruflin/Elastica/compare/5.3.0...master)
+
+### Backward Compatibility Breaks
+
+- Removed `Query\NumericRange`, use `Query\Range` instead [#1334](https://github.com/ruflin/Elastica/pull/1334)
+
+### Bugfixes
+
+- Send the `scroll_id` inside a json body instead of plain text [#1325](https://github.com/ruflin/Elastica/pull/1325)
+
+### Added
+ - Added getNumberOfReplicas() for index settings [PR#1324](https://github.com/ruflin/Elastica/pull/1324)
+ - Added getNumberOfShards() for index settings [PR#1321](https://github.com/ruflin/Elastica/pull/1331)
+ - Added avg_bucket() and sum_bucket() in aggregations [PR#1443](https://github.com/ruflin/Elastica/pull/1443) - (https://github.com/ruflin/Elastica/issues/1279)
+
+
+## [5.2.1](https://github.com/ruflin/Elastica/compare/5.2.0...5.2.1)
+
+### Bugfixes
+
+- Fix elastic 5.3.x deprecation warning related to Content-Type not being set.
+- Fix updating settings of an index. [#1296](https://github.com/ruflin/Elastica/pull/1296)
+- Remove `Elastica\Search::OPTION_SEARCH_TYPE_DFS_QUERY_AND_FETCH` and `Elastica\Search::OPTION_SEARCH_TYPE_QUERY_AND_FETCH` as no longer supported as of 5.3.0
+- Fix bad parameter value to refresh document [#1318](https://github.com/rufli/Elastica/pull/1318)
+
+### Added
+
+ - Added `\Elastica\Query\Span*` for proximity searches [#304](https://github.com/ruflin/Elastica/issues/304)
+ - Parameter `filter_path` for response filtering (e.g. `$index->search($query, ['filter_path' => 'hits.hits._source'])`)
+ - Add support for Health parameters for Cluster\Health endpoint (new prop : delayed_unassigned_shards, number_of_pending_tasks, number_of_in_flight_fetch, task_max_waiting_in_queue_millis, active_shards_percent_as_number)
+ - Add support for querystring in Type. this allow to use `update_all_types` in type mapping in order to resolve conflicts between fields in different types. [Conflicts between fields in different types](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html#merging-conflicts)
+ - Added `\Elastica\Query\ParentId` to avoid join with parent documents [#1287](https://github.com/ruflin/Elastica/issues/1287)
+ - Added `\Elastica\Reindex` for reindexing between indices [#1311](https://github.com/ruflin/Elastica/issues/1311)
+
+### Improvements
+
+ - Added support for `other_bucket` and `other_bucket_key` paramters on `Elastica\Aggregation\Filters`
+ - Update elasticsearch testing dependency to 5.4.1
+
 ### Deprecated
+ - Deprecated `Tool\CrossIndex` use `\Elastica\Reindex` instead [#1311](https://github.com/ruflin/Elastica/issues/1311)
 
-
-## [Unreleased](https://github.com/ruflin/Elastica/compare/5.1.0...5.2.0)
+## [5.2.0](https://github.com/ruflin/Elastica/compare/5.1.0...5.2.0)
 
 ### Bugfixes
 
