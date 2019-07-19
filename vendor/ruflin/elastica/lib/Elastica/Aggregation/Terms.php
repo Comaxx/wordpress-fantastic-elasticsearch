@@ -1,5 +1,4 @@
 <?php
-
 namespace Elastica\Aggregation;
 
 /**
@@ -19,6 +18,18 @@ class Terms extends AbstractTermsAggregation
      */
     public function setOrder($order, $direction)
     {
-        return $this->setParam('order', array($order => $direction));
+        return $this->setParam('order', [$order => $direction]);
+    }
+
+    /**
+     * Sets a list of bucket sort orders.
+     *
+     * @param array $orders A list of [<aggregationField>|"_count"|"_term" => <direction>] definitions.
+     *
+     * @return $this
+     */
+    public function setOrders(array $orders)
+    {
+        return $this->setParam('order', $orders);
     }
 }

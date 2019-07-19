@@ -42,17 +42,17 @@ if(!class_exists('NHP_Options')){
 	require_once( dirname( __FILE__ ) . '/wp/lib/nhp/options/options.php' );
 }
 
-require 'src/bootstrap.php';
+require __DIR__.'/src/bootstrap.php';
 
-require 'wp/theme/AbstractArchive.php';
-require 'wp/theme/search.php';
-require 'wp/theme/category.php';
-require 'wp/theme/archive.php';
-require 'wp/theme/taxonomy.php';
-require 'wp/theme/tag.php';
-require 'wp/theme/widget-options.php';
-require 'wp/theme/widget-selected.php';
-require 'wp/admin/hooks.php';
+require __DIR__.'/wp/theme/AbstractArchive.php';
+require __DIR__.'/wp/theme/search.php';
+require __DIR__.'/wp/theme/category.php';
+require __DIR__.'/wp/theme/archive.php';
+require __DIR__.'/wp/theme/taxonomy.php';
+require __DIR__.'/wp/theme/tag.php';
+require __DIR__.'/wp/theme/widget-options.php';
+require __DIR__.'/wp/theme/widget-selected.php';
+require __DIR__.'/wp/admin/hooks.php';
 
 add_action( 'admin_enqueue_scripts', function() {
 	wp_register_style( 'custom_wp_admin_css', plugins_url('wp/css/admin.css', __FILE__) );

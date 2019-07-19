@@ -1,6 +1,8 @@
 <?php
 namespace elasticsearch;
 
+define('ACF_SUPPORT', function_exists('get_field_object'));
+
 /**
  * This class handles the magic of building documents and sending them to ElasticSearch for indexing.
  *
@@ -10,6 +12,24 @@ namespace elasticsearch;
  **/
 class Indexer
 {
+    private static $_postTypeRelevance = array();
+
+    /**
+     * @param array $postTypeRelevance
+     */
+    public static function setPostTypeRelevance($postTypeRelevance)
+    {
+        self::$_postTypeRelevance = $postTypeRelevance;
+    }
+
+    /**
+     * @return array
+     */
+    public static function getPostTypeRelevance()
+    {
+        return self::$_postTypeRelevance;
+    }
+
 	/**
 	 * The number of posts to index per page when re-indexing
 	 *
@@ -119,6 +139,8 @@ class Indexer
 	 **/
 	static function addOrUpdate($post, $index = null)
 	{
+	    global $blog_id;
+
 		$index = ($index ?: self::_index(true));
 
 		$type = $index->getType($post->post_type);
@@ -147,6 +169,13 @@ class Indexer
 			self::_map_values($properties, $type, Config::fields(), 'field');
 			self::_map_values($properties, $type, Config::meta_fields(), 'meta');
 
+			$properties['blog_name'] = array(
+			    'type' => 'keyword'
+            );
+			$properties['post_type_relevance'] = array(
+			    'type' => 'integer',
+            );
+
 			$properties = Config::apply_filters('indexer_map', $properties, $postType);
 
 			$mapping = new \Elastica\Type\Mapping($type, $properties);
@@ -164,7 +193,18 @@ class Indexer
 	static function _build_document($post)
 	{
 		global $blog_id;
-		$document = array('blog_id' => $blog_id);
+		$blogDetails = get_blog_details();
+		$document = array(
+		    'blog_id' => $blog_id,
+            'blog_name' => array(
+                $blogDetails->blogname
+            )
+        );
+
+		if (array_key_exists($post->post_type, self::$_postTypeRelevance)) {
+            $document['post_type_relevance'] = self::$_postTypeRelevance[$post->post_type];
+        }
+
 		$document = self::_build_field_values($post, $document);
 		$document = self::_build_meta_values($post, $document);
 		$document = self::_build_tax_values($post, $document);
@@ -183,14 +223,45 @@ class Indexer
 	{
 		$keys = get_post_custom_keys($post->ID);
 
+		$all_meta_fields = $acf_fields = Config::meta_fields();
+
 		if (is_array($keys)) {
-			$meta_fields = array_intersect(Config::meta_fields(), $keys);
+			$meta_fields = array_intersect($all_meta_fields, $keys);
 
 			foreach ($meta_fields as $field) {
 				$val = get_post_meta($post->ID, $field, true);
 
 				if (isset($val)) {
-					$document[$field] = $val;
+                    // Get the label of the value
+                    if (ACF_SUPPORT && ($fieldObject = get_field_object($field, $post->ID))) {
+                        if ($fieldObject['type'] === 'repeater') {
+                            $val = '';
+                            while (has_sub_field($field, $post->ID)) {
+                                foreach ($fieldObject['sub_fields'] as $subfield) {
+                                    $subfield = get_sub_field($subfield['name']);
+                                    if ($subfield instanceof \WP_Term || $subfield instanceof \WP_Post) {
+                                        $val .= $subfield->name;
+                                    } else {
+                                        $val .= $subfield . PHP_EOL;
+                                    }
+                                }
+                            }
+                        } else if (is_array($val)) {
+                            foreach ($val as &$v) {
+                                $v = $fieldObject['choices'][$v];
+                            }
+                        } else {
+                            if (array_key_exists('choices', $fieldObject)) {
+                                $val = $fieldObject['choices'][$val];
+                            }
+                        }
+                    }
+
+                    if (is_array($val)) {
+                        $val = implode(' ', $val);
+                    }
+
+					$document[$field] = strip_tags($val);
 				}
 			}
 		}
@@ -283,20 +354,22 @@ class Indexer
 
 		foreach ($config_fields as $field) {
 			// set default
-			$props = array('type' => 'string');
+			$props = array(
+			    'type' => 'text'
+            );
 			// detect special field type
 			if (isset($numeric[$field])) {
-				$props['type'] = 'float';
-			} elseif (isset($notanalyzed[$field]) || $kind == 'taxonomy' || $field == 'post_type') {
-				$props['index'] = 'not_analyzed';
-			} elseif ($field == 'post_date') {
+				$props['type'] = 'double';
+			} elseif (isset($notanalyzed[$field]) || $kind === 'taxonomy' || $field === 'post_type') {
+				$props['index'] = 'true';
+			} elseif ($field === 'post_date') {
 				$props['type'] = 'date';
 				$props['format'] = 'date_time_no_millis';
 			} else {
 				$props['index'] = 'analyzed';
 			}
 
-			if ($props['type'] == 'string' && $props['index'] == 'analyzed') {
+			if ($props['type'] === 'text' && $props['index'] === 'analyzed') {
 				// provides more accurate searches
 
 				$lang = Config::apply_filters('string_language', 'english');
@@ -315,8 +388,10 @@ class Indexer
 			$props = Config::apply_filters('indexer_map_' . $kind, $props, $field);
 
 			// also index taxonomy_name field
-			if ($kind == 'taxonomy') {
-				$tax_name_props = array('type' => 'string');
+			if ($kind === 'taxonomy') {
+				$tax_name_props = array(
+				    'type' => 'keyword'
+                );
 				$tax_name_props = Config::apply_filters('indexer_map_taxonomy_name', $tax_name_props, $field);
 			}
 
@@ -333,7 +408,7 @@ class Indexer
 	 *
 	 * @param boolean $write Specifiy whether you are making read-only or write transactions (currently just adjusts timeout values)
 	 *
-	 * @return Elastica\Client
+	 * @return \Elastica\Client
 	 * @internal
 	 **/
 	static function _client($write = false)
@@ -359,12 +434,12 @@ class Indexer
 	 *
 	 * @param boolean $write Specifiy whether you are making read-only or write transactions (currently just adjusts timeout values)
 	 *
-	 * @return Elastica\Index
+	 * @return \Elastica\Index
 	 * @internal
 	 **/
-	static function _index($write = false)
+	public static function _index($write = false, $useAlias = false)
 	{
-		return self::_client($write)->getIndex(Config::option('server_index'));
+		return self::_client($write)->getIndex(($useAlias && Config::option('server_alias'))?Config::option('server_alias'):Config::option('server_index'));
 	}
 }
 

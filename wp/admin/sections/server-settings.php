@@ -36,6 +36,29 @@ add_action('nhp-opts-options-validate-elasticsearch', function ($new, $current) 
 			return;
 		}
 
+        try {
+            $index = $client->getIndex($new['server_alias']);
+
+            $status = $index->getStats()->getData();
+        } catch (\Elastica\Exception\ResponseException $ex) {
+            // This kind usually means there was an issue with the alias is not existing, so we'll associate the message to that field.
+            $field = $NHP_Options->sections['server']['fields']['server_alias'];
+            $field['msg'] = __($ex->getMessage());
+
+            $NHP_Options->errors[] = $field;
+
+            set_transient('nhp-opts-errors-elasticsearch', $NHP_Options->errors, 1000);
+            return;
+        } catch (\Exception $ex) {
+            $field = $NHP_Options->sections['server']['fields']['server_url'];
+            $field['msg'] = __($ex->getMessage());
+
+            $NHP_Options->errors[] = $field;
+
+            set_transient('nhp-opts-errors-elasticsearch', $NHP_Options->errors, 1000);
+            return;
+        }
+
 		try {
 			$index = $client->getIndex($new['secondary_index']);
 
@@ -92,6 +115,12 @@ $sections['server'] = array(
 			'sub_desc' => 'If defined, a wipe of data will actually run against the secondary index first, allowing you to re-populate (without touching production) and then swap after.',
 			'title' => 'Secondary Index Name'
 		),
+        'server_alias' => array(
+            'id' => 'server_alias',
+            'type' => 'text',
+            'sub_desc' => 'If defined, this alias is used to search for content. When using MultiSite you could use this to search all sites or on a specific subsite.',
+            'title' => 'Alias Name',
+        ),
 		'server_timeout_read' => array(
 			'id' => 'server_timeout_read',
 			'type' => 'text',

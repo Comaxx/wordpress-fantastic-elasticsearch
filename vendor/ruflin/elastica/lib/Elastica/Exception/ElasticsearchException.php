@@ -1,6 +1,7 @@
 <?php
-
 namespace Elastica\Exception;
+
+trigger_error('Elastica\Exception\ElasticsearchException is deprecated. Use Elastica\Exception\ResponseException::getResponse::getFullError instead.', E_USER_DEPRECATED);
 
 /**
  * Elasticsearch exception.
@@ -24,20 +25,18 @@ class ElasticsearchException extends \Exception implements ExceptionInterface
     /**
      * @var array Error array
      */
-    protected $_error = array();
+    protected $_error = [];
 
     /**
      * Constructs elasticsearch exception.
      *
-     * @param int   $code  Error code
-     * @param array $error Error object from elasticsearch
+     * @param int    $code  Error code
+     * @param string $error Error message from elasticsearch
      */
     public function __construct($code, $error)
     {
-        $this->_error = $error;
-        // TODO: es2 improve as now an array
-        $this->_parseError(json_encode($error));
-        parent::__construct(json_encode($error), $code);
+        $this->_parseError($error);
+        parent::__construct($error, $code);
     }
 
     /**

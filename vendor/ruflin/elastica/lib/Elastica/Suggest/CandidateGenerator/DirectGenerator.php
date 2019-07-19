@@ -1,5 +1,4 @@
 <?php
-
 namespace Elastica\Suggest\CandidateGenerator;
 
 /**
@@ -72,7 +71,7 @@ class DirectGenerator extends AbstractCandidateGenerator
      */
     public function setPrefixLength($length)
     {
-        return $this->setParam('prefix_len', $length);
+        return $this->setParam('prefix_length', $length);
     }
 
     /**
@@ -82,7 +81,7 @@ class DirectGenerator extends AbstractCandidateGenerator
      */
     public function setMinWordLength($min)
     {
-        return $this->setParam('min_word_len', $min);
+        return $this->setParam('min_word_length', $min);
     }
 
     /**
